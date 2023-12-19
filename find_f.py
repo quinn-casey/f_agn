@@ -1,15 +1,19 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[8]:
-
-
 import  pandas as pd
 import numpy as np
+import os
 
-dfgrid = pd.read_csv('/Users/quinncasey/pyme/f_agn/data/value_table.csv')
+def get_data_file_path(filename):
+    # Get the directory where this script is located
+    script_dir = os.path.dirname(os.path.realpath(filename))
 
-def find_f(x, y):
+    # Construct the path to the data file relative to the script location
+    data_file_path = os.path.join(script_dir, 'data', filename)
+
+    return data_file_path
+
+dfgrid = pd.read_csv(get_data_file_path('value_table.csv'))
+
+def calc(x, y):
     # Find the index of the closest x and y pair
     index = ((dfgrid['x'] - x)**2 + (dfgrid['y'] - y)**2).idxmin()
     
@@ -20,10 +24,3 @@ def find_f(x, y):
         print('Error: This point falls outside our model (sorry).')
     
     return result
-
-
-# In[ ]:
-
-
-
-
