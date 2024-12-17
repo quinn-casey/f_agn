@@ -16,4 +16,4 @@ Usage:
 
 `from find_f import calc`
 
-`calc(x, y)`
+`frac_agn = calc(x, y)`
