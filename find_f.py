@@ -41,9 +41,9 @@ def calc(x, y):
         if (~kewl(x, y) and kauf(x, y)) or (~kewl(x, y) and (x > 0.03030)):
             result = pd.Series({'f_mean': 0.5, 'f_median': 0.5, 'f_std': 0, 'f_var': 0})
         if x > 0.47 and ~kewl(x, y):
-            result = pd.Series({'f_mean': 1, 'f_median': 1, 'f_std': 0, 'f_var': 0})
+            result = pd.Series({'f_mean': 0.99, 'f_median': 0.99, 'f_std': 0, 'f_var': 0})
         # SFGs
         if ~kauf(x, y) and (x < 0.0303030):
-            result = pd.Series({'f_mean': 0, 'f_median': 0, 'f_std': 0, 'f_var': 0})
+            result = pd.Series({'f_mean': 0.01, 'f_median': 0.01, 'f_std': 0, 'f_var': 0})
     
     return result
