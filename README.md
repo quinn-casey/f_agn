@@ -4,9 +4,9 @@ emission line ratios (NII/Ha) & (OIII/Hb) from some starting point (starforming 
 define 2500 starting/ending points with the SDSS eBOSS DR16 data and randomly connect points via emission line ratios and a 
 fractional AGN contribution (0 < f_agn < 100). See Jones et al. 2016 (doi:10.3847/0004-637X/826/1/12) for a more complete explanation.
 
-For x and y points which fall outside the parameter space we assume either 0% AGN, 50% AGN (composite galaxies), or 100% AGN. See the figure in example_and_test.ipynb for clarification; note that example_and_test.ipynb is for illustrative purposes and you'll encounter path issues if you try and run it locally. 
+By default, the code uses the nearest 15 data points for the mean, median, standard deviation, and variance calculation. This can be altered by changing the optional `grid_name` parameter in the `calc()` function. Grids begining with 'r' use a radial selection (e.g. 'r025' takes all points within a 0.025 radius), and grids beginning with 'n' using the nearest n number of points (e.g. 'n5' grabs the nearest 5 points).
 
-Due to the nature of the model we do not distinguish between Seyferts and LINERs. 
+Disclaimer: Due to the nature of the model we do not distinguish between Seyferts and LINERs. Galaxies at low [NII]/Ha and high [OIII]/Hb are not well captured by this model.
 
 Please include a footnote with the link to this repository if you use this model in your work.
 
