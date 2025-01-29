@@ -96,10 +96,11 @@ def main():
     #plt.show()
 
     # these are points in extreme grid space to add
-    sfg_add_x = np.linspace(-2.5, -1, 10)
+    N_add = 30
+    sfg_add_x = np.linspace(-2.5, -1, N_add)
     sfg_add_y = kauf_line_alt(sfg_add_x)
 
-    agn_add_x = np.linspace(-0.5, 0.85, 10)
+    agn_add_x = np.linspace(-0.5, 0.85, N_add)
     agn_add_y = kewl_line_alt(agn_add_x)
 
 

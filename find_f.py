@@ -2,14 +2,21 @@ import  pandas as pd
 import numpy as np
 import os
 
-def get_data_file_path(filename):
-    # Get the directory where this script is located
-    script_dir = os.path.dirname(os.path.realpath(filename))
+#def get_data_file_path(filename):
+#    # Get the directory where this script is located
+#    script_dir = os.path.dirname(os.path.realpath(filename))
 
     # Construct the path to the data file relative to the script location
-    data_file_path = os.path.join(script_dir, 'f_agn/data', filename)
-    #data_file_path = os.path.join(script_dir, 'data', filename)
+#    data_file_path = os.path.join(script_dir, 'f_agn/data', filename)
+#    #data_file_path = os.path.join(script_dir, 'data', filename)
 
+#    return data_file_path
+
+def get_data_file_path(filename):
+    # Get the directory where this script is located
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    # Construct the path to the data file relative to the script location
+    data_file_path = os.path.join(script_dir, 'data', filename)
     return data_file_path
 
 # Load all grids as global variables
