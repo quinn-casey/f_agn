@@ -7,7 +7,7 @@ def get_data_file_path(filename):
     script_dir = os.path.dirname(os.path.realpath(filename))
 
     # Construct the path to the data file relative to the script location
-    data_file_path = os.path.join(script_dir, 'f_agn3/data', filename)
+    data_file_path = os.path.join(script_dir, 'f_agn/data', filename)
     #data_file_path = os.path.join(script_dir, 'data', filename)
 
     return data_file_path
