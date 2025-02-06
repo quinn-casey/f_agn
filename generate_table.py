@@ -13,6 +13,7 @@ from scipy.stats import gaussian_kde
 import time
 import sys
 import gc
+from joblib import Parallel, delayed
 
 
 def main():
@@ -41,7 +42,7 @@ def main():
         return y
     def kewl_line_alt(x):
         #x=np.linspace(-2.5, 0.65, 100)
-        y = (0.61/(x - (0.47+0.75)) + (1.19+0.75))
+        y = (0.61/(x - (0.47+1.0)) + (1.19+1.0))
         return y
 
     
@@ -53,6 +54,57 @@ def main():
         data_file_path = os.path.join(script_dir, 'data', filename)
 
         return data_file_path
+
+    def gen_bounds(real_points, func, num_random_points=300):
+        x_real = [point[0] for point in real_points]
+        y_real = [point[1] for point in real_points]
+
+        # Calculate deltas and cumulative distances
+        d = []
+        for i in range(1, len(real_points)):
+            delta = (x_real[i] - x_real[i-1])**2 + (y_real[i] - y_real[i-1])**2
+            d.append(delta)
+
+        # Calculate cumulative distances
+        cumulative_d = np.zeros(len(d))
+        cumulative_d[0] = d[0]
+        for i in range(1, len(d)):
+            cumulative_d[i] = cumulative_d[i-1] + d[i]
+
+        total_length = cumulative_d[-1]
+
+        random_points = []
+
+        for _ in range(num_random_points):
+            # Generate a random distance
+            r = np.random.uniform(0, total_length)
+
+            # Find which segment this distance falls into
+            for i in range(len(cumulative_d)):
+                if r <= cumulative_d[i]:
+                    # Interpolate between the two points (i-1 and i)
+                    if i == 0:
+                        segment_start = 0
+                    else:
+                        segment_start = cumulative_d[i-1]
+
+                    segment_length = cumulative_d[i] - segment_start
+                    fraction_of_segment = (r - segment_start) / segment_length
+
+                    # Calculate the random point (xr, yr)
+                    xr = x_real[i-1] + fraction_of_segment * (x_real[i] - x_real[i-1])
+                    yr = y_real[i-1] + fraction_of_segment * (y_real[i] - y_real[i-1])
+
+                    # Instead, we could also use the line function for y
+                    #yr = kewl_line_alt(xr)
+                    yr = func(xr)
+
+                    random_points.append((xr, yr))
+                    break
+
+        return random_points
+
+
     
     # read in BPT data
     eboss = pd.read_csv(get_data_file_path('eboss_bpt.csv'))
@@ -96,12 +148,24 @@ def main():
     #plt.show()
 
     # these are points in extreme grid space to add
-    N_add = 30
-    sfg_add_x = np.linspace(-2.5, -1, N_add)
-    sfg_add_y = kauf_line_alt(sfg_add_x)
+    N_add = 300
 
-    agn_add_x = np.linspace(-0.5, 0.85, N_add)
-    agn_add_y = kewl_line_alt(agn_add_x)
+    x_kauf = np.linspace(-2.5, -1, N_add)
+    real_kauf = [(x, kauf_line_alt(x)) for x in x_kauf]
+    random_kauf = gen_bounds(real_kauf, kauf_line_alt, num_random_points=N_add)
+    sfg_add_x, sfg_add_y = zip(*sorted(random_kauf, key=lambda x: x[0]))
+    
+    x_kewl = np.linspace(-0.25, 1.15, N_add)
+    real_kewl = [(x, kewl_line_alt(x)) for x in x_kewl]
+    random_kewl = gen_bounds(real_kewl, kewl_line_alt, num_random_points=N_add)
+    agn_add_x, agn_add_y = zip(*sorted(random_kewl, key=lambda x: x[0]))
+
+    #N_add = 30
+    #sfg_add_x = np.linspace(-2.5, -1, N_add)
+    #sfg_add_y = kauf_line_alt(sfg_add_x)
+
+    #agn_add_x = np.linspace(-0.5, 0.85, N_add)
+    #agn_add_y = kewl_line_alt(agn_add_x)
 
 
     # Example logic for computing total_points
@@ -417,7 +481,6 @@ def main():
         else:
             return result
 
-
     # Combined method: Use radius for points in model space, use nearest N for points outside
     def f_agn_combined(dfx, dfy, x, y, radius, num=20):
         distances = np.sqrt((dfx - x)**2 + (dfy - y)**2)
@@ -431,11 +494,36 @@ def main():
             result = [index[0] for index in min_inds]
         return result
 
+    # Combined method: Use radius for points in model space, use nearest N for points outside
+    #def f_agn_combined(dfx, dfy, x, y, radius, num=20):
+    #    dfx_array = dfx.values
+    #    dfy_array = dfy.values
     
-    # Generate x and y values
+    #    # Calculate distances squared (to avoid computing square root unnecessarily for comparison)
+    #    dx = dfx_array - x
+    #    dy = dfy_array - y
+    #    distances_squared = dx**2 + dy**2
+    
+    #    # Select points within the radius (using squared distances)
+    #    mask = distances_squared < radius**2
+    #    result = np.where(mask.any(axis=1))[0].tolist()  # Get indices of points within the radius
+
+    #    # If no points are within the radius, return the nearest N points
+    #    if not result:
+    #        # Flatten distances and get the indices of the smallest distances
+    #        min_indices = np.argsort(distances_squared, axis=None)[:num]
+    #        result = [divmod(idx, distances_squared.shape[1])[0] for idx in min_indices]
+    
+    #    return result
+    
+    # Generate x and y values to make the lookup table
+    # small table
+    #x_values = np.arange(-2.25, 0.75, 0.1)
+    #y_values = np.arange(-1.25, 1.35, 0.1)
+    #large table
     x_values = np.arange(-2.25, 0.75, 0.025)
     y_values = np.arange(-1.25, 1.35, 0.025)
-
+    
     # Create a meshgrid
     x_mesh, y_mesh = np.meshgrid(x_values, y_values)
 
@@ -449,27 +537,45 @@ def main():
     
     # takes ~80 minutes for 10,000 tracks & 3120 galaxies
     # Define a helper function for processing
-    def calculate_fraction(radius):
+    #def calculate_fraction(radius):
+    #    start_time = time.time()
+    #    result = dfgrid.apply(lambda row: f_agn_combined(dfx, dfy, row['x'], row['y'], radius=radius), axis=1)
+    #    end_time = time.time()
+    #    tot_time = end_time - start_time
+    #    print(f'For Combined Method (r={radius}) {len(dfgrid)} galaxies & {len(dfx)} lines it takes {tot_time} seconds')
+    #    return result
+
+    
+    #print('Starting lookup table creation... ')
+    
+    
+    #start_time = time.time()
+    #total_steps = len(dfgrid)
+    #frac_agn_r025 = dfgrid.apply(
+    #    lambda row: (print(f"Progress: {row.name / total_steps * 100:.2f}% completed", end="\r"),
+    #                 f_agn_combined(dfx, dfy, row['x'], row['y'], radius=0.025))[1], axis=1)
+    #end_time = time.time()
+    #tot_time = end_time - start_time
+    #print('\nFor Radial Method (r=0.025)', len(dfgrid), 'galaxies &', len(dfx.columns), 'tracks it takes', tot_time, 'seconds')
+
+    # Define a function for parallel processing, n_jobs is the number of CPUs the function will use... BE CAREFUL
+    def calculate_fraction(radius, n_jobs=10):
         start_time = time.time()
-        result = dfgrid.apply(lambda row: f_agn_combined(dfx, dfy, row['x'], row['y'], radius=radius), axis=1)
+        
+        # Parallel processing using Modified f_agn_combined
+        results = Parallel(n_jobs=n_jobs)(
+            delayed(f_agn_combined)(dfx, dfy, row['x'], row['y'], radius) for _, row in dfgrid.iterrows()
+        )
+
         end_time = time.time()
-        tot_time = end_time - start_time
-        print(f'For Combined Method (r={radius}) {len(dfgrid)} galaxies & {len(dfx)} lines it takes {tot_time} seconds')
-        return result
+        print(f'For Combined Method (r={radius}) {len(dfgrid)} galaxies & {len(dfx)} lines it takes {end_time - start_time:.2f} seconds')
+        return results
 
-    
-    print('Starting lookup table creation... ')
-    
-    
+    n_cpus = 10
+    print(f'Starting lookup table creation... You are using {n_cpus} CPUs!')
     start_time = time.time()
-    total_steps = len(dfgrid)
-    frac_agn_r025 = dfgrid.apply(
-        lambda row: (print(f"Progress: {row.name / total_steps * 100:.2f}% completed", end="\r"),
-                     f_agn_combined(dfx, dfy, row['x'], row['y'], radius=0.025))[1], axis=1)
-    end_time = time.time()
-    tot_time = end_time - start_time
-    print('\nFor Radial Method (r=0.025)', len(dfgrid), 'galaxies &', len(dfx.columns), 'tracks it takes', tot_time, 'seconds')
-
+    frac_agn_r025 = calculate_fraction(radius=0.025, n_jobs=n_cpus)
+    
     dfgrid_r025 = dfgrid.copy()
     dfgrid_r025['frac_agn'] = frac_agn_r025
     dfgrid_r025['f_mean'] = dfgrid_r025['frac_agn'].apply(np.nanmean)
@@ -477,6 +583,10 @@ def main():
     dfgrid_r025['f_std'] = dfgrid_r025['frac_agn'].apply(np.std)
     dfgrid_r025['f_var'] = dfgrid_r025['frac_agn'].apply(np.var)
 
+    end_time = time.time()
+    tot_time = end_time - start_time
+    print('\nTotal time taken:', tot_time, 'seconds')
+    
     plt.figure(figsize=(7, 5))
     plt.scatter(eboss['x'], eboss['y'], c='tab:gray', s=0.1, alpha=0.4)
     plt.scatter(dfgrid_r025['x'], dfgrid_r025['y'], c=dfgrid_r025['f_mean'], cmap='cool', marker='o', s=10)
@@ -499,16 +609,27 @@ def main():
     gc.collect()
     print('Trash has been taken out for r025')
 
+    #sys.exit("Test finished")
     #########################
 
+    #start_time = time.time()
+    #total_steps = len(dfgrid)
+    #frac_agn_r05 = dfgrid.apply(
+    #    lambda row: (print(f"Progress: {row.name / total_steps * 100:.2f}% completed", end="\r"),
+    #                 f_agn_combined(dfx, dfy, row['x'], row['y'], radius=0.05))[1], axis=1)
+    #end_time = time.time()
+    #tot_time = end_time - start_time
+    #print('\nFor Radial Method (r=0.05)', len(dfgrid), 'galaxies &', len(dfx.columns), 'tracks it takes', tot_time, 'seconds')
+
+    #dfgrid_r05 = dfgrid.copy()
+    #dfgrid_r05['frac_agn'] = frac_agn_r05
+    #dfgrid_r05['f_mean'] = dfgrid_r05['frac_agn'].apply(np.nanmean)
+    #dfgrid_r05['f_median'] = dfgrid_r05['frac_agn'].apply(np.median)
+    #dfgrid_r05['f_std'] = dfgrid_r05['frac_agn'].apply(np.std)
+    #dfgrid_r05['f_var'] = dfgrid_r05['frac_agn'].apply(np.var)
+
     start_time = time.time()
-    total_steps = len(dfgrid)
-    frac_agn_r05 = dfgrid.apply(
-        lambda row: (print(f"Progress: {row.name / total_steps * 100:.2f}% completed", end="\r"),
-                     f_agn_combined(dfx, dfy, row['x'], row['y'], radius=0.05))[1], axis=1)
-    end_time = time.time()
-    tot_time = end_time - start_time
-    print('\nFor Radial Method (r=0.05)', len(dfgrid), 'galaxies &', len(dfx.columns), 'tracks it takes', tot_time, 'seconds')
+    frac_agn_r05 = calculate_fraction(radius=0.05, n_jobs=n_cpus)
 
     dfgrid_r05 = dfgrid.copy()
     dfgrid_r05['frac_agn'] = frac_agn_r05
@@ -517,6 +638,10 @@ def main():
     dfgrid_r05['f_std'] = dfgrid_r05['frac_agn'].apply(np.std)
     dfgrid_r05['f_var'] = dfgrid_r05['frac_agn'].apply(np.var)
 
+    end_time = time.time()
+    tot_time = end_time - start_time
+    print('\nTotal time taken:', tot_time, 'seconds')
+    
     plt.figure(figsize=(7, 5))
     plt.scatter(eboss['x'], eboss['y'], c='tab:gray', s=0.1, alpha=0.4)
     plt.scatter(dfgrid_r05['x'], dfgrid_r05['y'], c=dfgrid_r05['f_mean'], cmap='cool', marker='o', s=10)
@@ -541,14 +666,24 @@ def main():
 
     #####################################
 
+    #start_time = time.time()
+    #total_steps = len(dfgrid)
+    #frac_agn_r075 = dfgrid.apply(
+    #    lambda row: (print(f"Progress: {row.name / total_steps * 100:.2f}% completed", end="\r"),
+    #                 f_agn_combined(dfx, dfy, row['x'], row['y'], radius=0.075))[1], axis=1)
+    #end_time = time.time()
+    #tot_time = end_time - start_time
+    #print('\nFor Radial Method (r=0.075)', len(dfgrid), 'galaxies &', len(dfx.columns), 'tracks it takes', tot_time, 'seconds')
+
+    #dfgrid_r075 = dfgrid.copy()
+    #dfgrid_r075['frac_agn'] = frac_agn_r075
+    #dfgrid_r075['f_mean'] = dfgrid_r075['frac_agn'].apply(np.nanmean)
+    #dfgrid_r075['f_median'] = dfgrid_r075['frac_agn'].apply(np.median)
+    #dfgrid_r075['f_std'] = dfgrid_r075['frac_agn'].apply(np.std)
+    #dfgrid_r075['f_var'] = dfgrid_r075['frac_agn'].apply(np.var)
+
     start_time = time.time()
-    total_steps = len(dfgrid)
-    frac_agn_r075 = dfgrid.apply(
-        lambda row: (print(f"Progress: {row.name / total_steps * 100:.2f}% completed", end="\r"),
-                     f_agn_combined(dfx, dfy, row['x'], row['y'], radius=0.075))[1], axis=1)
-    end_time = time.time()
-    tot_time = end_time - start_time
-    print('\nFor Radial Method (r=0.075)', len(dfgrid), 'galaxies &', len(dfx.columns), 'tracks it takes', tot_time, 'seconds')
+    frac_agn_r075 = calculate_fraction(radius=0.075, n_jobs=n_cpus)
 
     dfgrid_r075 = dfgrid.copy()
     dfgrid_r075['frac_agn'] = frac_agn_r075
@@ -557,6 +692,10 @@ def main():
     dfgrid_r075['f_std'] = dfgrid_r075['frac_agn'].apply(np.std)
     dfgrid_r075['f_var'] = dfgrid_r075['frac_agn'].apply(np.var)
 
+    end_time = time.time()
+    tot_time = end_time - start_time
+    print('\nTotal time taken:', tot_time, 'seconds')
+    
     plt.figure(figsize=(7, 5))
     plt.scatter(eboss['x'], eboss['y'], c='tab:gray', s=0.1, alpha=0.4)
     plt.scatter(dfgrid_r075['x'], dfgrid_r075['y'], c=dfgrid_r075['f_mean'], cmap='cool', marker='o', s=10)
@@ -581,16 +720,26 @@ def main():
 
     #########################################
 
-    start_time = time.time()
-    total_steps = len(dfgrid)
-    frac_agn_r1 = dfgrid.apply(
-        lambda row: (print(f"Progress: {row.name / total_steps * 100:.2f}% completed", end="\r"),
-                     f_agn_combined(dfx, dfy, row['x'], row['y'], radius=0.1))[1], axis=1)
-    end_time = time.time()
-    tot_time = end_time - start_time
-    print('\nFor Radial Method (r=0.1)', len(dfgrid), 'galaxies &', len(dfx.columns), 'tracks it takes', tot_time, 'seconds')
+    #start_time = time.time()
+    #total_steps = len(dfgrid)
+    #frac_agn_r1 = dfgrid.apply(
+    #    lambda row: (print(f"Progress: {row.name / total_steps * 100:.2f}% completed", end="\r"),
+    #                 f_agn_combined(dfx, dfy, row['x'], row['y'], radius=0.1))[1], axis=1)
+    #end_time = time.time()
+    #tot_time = end_time - start_time
+    #print('\nFor Radial Method (r=0.1)', len(dfgrid), 'galaxies &', len(dfx.columns), 'tracks it takes', tot_time, 'seconds')
 
-    print('Lookup tables created.')
+    #print('Lookup tables created.')
+
+    #dfgrid_r1 = dfgrid.copy()
+    #dfgrid_r1['frac_agn'] = frac_agn_r1
+    #dfgrid_r1['f_mean'] = dfgrid_r1['frac_agn'].apply(np.nanmean)
+    #dfgrid_r1['f_median'] = dfgrid_r1['frac_agn'].apply(np.median)
+    #dfgrid_r1['f_std'] = dfgrid_r1['frac_agn'].apply(np.std)
+    #dfgrid_r1['f_var'] = dfgrid_r1['frac_agn'].apply(np.var)
+
+    start_time = time.time()
+    frac_agn_r1 = calculate_fraction(radius=0.1, n_jobs=n_cpus)
 
     dfgrid_r1 = dfgrid.copy()
     dfgrid_r1['frac_agn'] = frac_agn_r1
@@ -599,6 +748,12 @@ def main():
     dfgrid_r1['f_std'] = dfgrid_r1['frac_agn'].apply(np.std)
     dfgrid_r1['f_var'] = dfgrid_r1['frac_agn'].apply(np.var)
 
+    end_time = time.time()
+    tot_time = end_time - start_time
+    print('\nTotal time taken:', tot_time, 'seconds')
+
+    print('Lookup tables created!')
+    
     plt.figure(figsize=(7, 5))
     plt.scatter(eboss['x'], eboss['y'], c='tab:gray', s=0.1, alpha=0.4)
     plt.scatter(dfgrid_r1['x'], dfgrid_r1['y'], c=dfgrid_r1['f_mean'], cmap='cool', marker='o', s=10)

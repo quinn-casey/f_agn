@@ -1,7 +1,10 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from find_f import calc
+import matplotlib
+matplotlib.use( 'TkAgg' )
+import matplotlib.pyplot as plt
+#plt.style.use('ggplot')
 
 def kauf_line():
     x=np.linspace(-2, 0, 100)
@@ -51,15 +54,15 @@ def main():
         plt.figure(figsize=(8, 6))
 
         # Plot Kaufmann and Kewley lines
-        plt.plot(kauf_line()[0], kauf_line()[1], c='r')
-        plt.plot(kewl_line()[0], kewl_line()[1], c='r')
+        plt.plot(kauf_line()[0], kauf_line()[1], color='r')
+        plt.plot(kewl_line()[0], kewl_line()[1], color='r')
 
         # Scatter the points based on the condition
         plt.scatter(X, Y, c=i)
         plt.colorbar(label=r'Fractional AGN Contribution')
         #plt.title(str(i))
-        plt.text(-1.5, -0.5, '0% AGN', c='w')
-        plt.text(0.05, 1, '100% AGN', c='k')
+        plt.text(-1.5, -0.5, '0% AGN', color='w')
+        plt.text(0.05, 1, '100% AGN', color='k')
 
         plt.xlim(-2, 0.5)
         plt.ylim(-1.25, 1.25)
