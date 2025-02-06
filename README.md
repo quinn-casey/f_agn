@@ -10,6 +10,7 @@ If no evolutionary tracks are contained within the radius then we select the 20 
 
 Disclaimer: Due to the nature of the model we do not distinguish between Seyferts and LINERs.
 Galaxies at low [NII]/Ha and high [OIII]/Hb are not well captured by this model (nor understood well physically -- I'm working on another paper to address this). 
+You likely do not want to run `generate_table.py` locally as it is parallelized over 10 CPUs and takes a long time. 
 
 Please include a footnote with the link to this repository if you use this model in your work.
 
