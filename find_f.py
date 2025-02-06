@@ -31,7 +31,7 @@ grids = {
     #"n20": pd.read_csv(get_data_file_path('table_n20.csv')),
 }
 
-def calc(x, y, grid_name="r05"):
+def calc(x, y, grid_name="r075"):
     """
     Calculate the closest grid point and return related values.
     
