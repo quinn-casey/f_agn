@@ -336,49 +336,77 @@ def main():
     #plt.show()
     
     # do the calculations
-    balmer_dec_sf = 2.86    # star forming Balmer decrement
-    balmer_dec_agn = 3.1    # AGN Balmer decrement
+    balmer_dec = 2.86
 
-    # fractional AGN contribution, shape (981,)
+    # H-alpha caontribution is 1 (doesn't matter bc they are all ratios)
+    sfha = np.linspace(1, 1, N)
+    # balmer decrement
+    sfhb = sfha/balmer_dec
+    # SFG N2 contribution based of the SFG points and SFG H-alpha
+    sfn2 = sfha*(10**sfx)
+    # same idea as sfn2
+    sfo3 = sfhb*(10**sfy)
+
+    # fractional AGN contribution
     f = np.linspace(0.01, 0.99, 981)
 
-    # --- Star forming component (shape (N,)) ---
-    sfha = np.ones(N)                 # H-alpha contribution = 1
-    sfhb = sfha / balmer_dec_sf       # Balmer decrement (SF)
-    sfn2 = sfha * (10**sfx)
-    sfo3 = sfhb * (10**sfy)
+    # calculating the AGN O3 contribution for a given f-value
+    # f = agno3/(sfo3+agno3) ----> ao3 = -f*sfo3/(f-1)
+    agno3 = []
+    for index, value in enumerate(sfo3):
+            agno3.append((-f[:]*value)/(f[:]-1))
 
-    # Reshape SF arrays to (N, 1) so they broadcast against f (981,) -> (N, 981)
-    sfha_2d = sfha[:, None]
-    sfhb_2d = sfhb[:, None]
-    sfn2_2d = sfn2[:, None]
-    sfo3_2d = sfo3[:, None]
+    # calculating agn hb, ha, & n2 based on various lines and the agn x & y components
+    agnhb = []
+    for index, value in enumerate(agno3):
+        agnhb.append(value/(10**agny[index]))
 
-    # Reshape AGN x/y to (N, 1) as well
-    agnx_2d = np.asarray(agnx)[:, None]
-    agny_2d = np.asarray(agny)[:, None]
+    agnha = []
+    for i in agnhb:
+        agnha.append(i*balmer_dec)
 
-    # --- AGN component, all shape (N, 981) ---
-    # f = agno3/(sfo3+agno3)  ->  agno3 = -f*sfo3/(f-1)
-    agno3 = (-f * sfo3_2d) / (f - 1)          # broadcasts (N,1)*(981,) -> (N,981)
-    agnhb = agno3 / (10**agny_2d)
-    agnha = agnhb * balmer_dec_agn            # AGN uses 3.1
-    agnn2 = agnha * (10**agnx_2d)
+    agnn2 = []
+    for index, value in enumerate(agnha):
+        agnn2.append(value*(10**agnx[index]))
 
-    # --- Totals (all (N, 981)) ---
-    n2 = agnn2 + sfn2_2d
-    ha = agnha + sfha_2d
-    o3 = agno3 + sfo3_2d
-    hb = agnhb + sfhb_2d
+    # calculating the total n2, ha, o3, hb contribution for a given f value 
+    # n2_tot = agnn2+sfgn2, etc.
+    n2 = []
+    for index, value in enumerate(agnn2):
+        n2.append(value+sfn2[index])
 
-    # --- Log x & y space ---
-    x = np.log10(n2 / ha)
-    y = np.log10(o3 / hb)
+    ha = []
+    for index, value in enumerate(agnha):
+        ha.append(value+sfha[index])
 
-    # --- DataFrames: index = f, columns = source number ---
-    # x is (N, 981); transpose to (981, N) so rows align with f
-    dfx = pd.DataFrame(x.T, index=f, columns=range(N))
-    dfy = pd.DataFrame(y.T, index=f, columns=range(N))
+    o3 = []
+    for index, value in enumerate(agno3):
+        o3.append(value+sfo3[index])
+
+    hb = []
+    for index, value in enumerate(agnhb):
+        hb.append(value+sfhb[index])
+
+    # translating n2, ha, o3, hb into log x & y space
+    x = []
+    for index, value in enumerate(n2):
+        x.append(np.log10(value/ha[index]))
+
+    y = []
+    for index, value in enumerate(o3):
+        y.append(np.log10(value/hb[index]))
+
+
+    # making array with x/y and f values
+    xs = []
+    ys = []
+    for i in range(N):
+        xs.append((np.array( x[i][:]), f))                          
+        ys.append((np.array( y[i][:]), f))
+
+    #  putting x/y values in df where the index number is the fractional AGN contribution
+    dfx = pd.DataFrame({i: xs[i][0] for i in range(N)}, index=f)
+    dfy = pd.DataFrame({i: ys[i][0] for i in range(N)}, index=f)
     
     print('calculations completed')
     
