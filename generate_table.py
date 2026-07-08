@@ -336,12 +336,13 @@ def main():
     #plt.show()
     
     # do the calculations
-    balmer_dec = 2.86
+    balmer_dec_sf = 2.86
+    balmer_dec_agn = 3.1
 
     # H-alpha caontribution is 1 (doesn't matter bc they are all ratios)
     sfha = np.linspace(1, 1, N)
     # balmer decrement
-    sfhb = sfha/balmer_dec
+    sfhb = sfha/balmer_dec_sf
     # SFG N2 contribution based of the SFG points and SFG H-alpha
     sfn2 = sfha*(10**sfx)
     # same idea as sfn2
@@ -363,7 +364,7 @@ def main():
 
     agnha = []
     for i in agnhb:
-        agnha.append(i*balmer_dec)
+        agnha.append(i*balmer_dec_agn)
 
     agnn2 = []
     for index, value in enumerate(agnha):
@@ -571,7 +572,7 @@ def main():
         print(f'For Combined Method (r={radius}) {len(dfgrid)} galaxies & {len(dfx)} lines it takes {end_time - start_time:.2f} seconds')
         return results
 
-    n_cpus = 10
+    n_cpus = 5
     print(f'Starting lookup table creation... You are using {n_cpus} CPUs!')
     start_time = time.time()
     frac_agn_r025 = calculate_fraction(radius=0.025, n_jobs=n_cpus)
