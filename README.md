@@ -12,7 +12,7 @@ Disclaimer: Due to the nature of the model we do not distinguish between Seyfert
 Galaxies at low [NII]/Ha and high [OIII]/Hb are not well captured by this model (nor understood well physically -- I'm working on another paper to address this). 
 You likely do not want to run `generate_table.py` locally as it is parallelized over 10 CPUs and takes a long time. 
 
-Please include a footnote with the link to this repository if you use this model in your work. The associated paper is submitted to ApJ.
+Please include a footnote with the link to this repository if you use this model in your work as well citing the Zenodo DOI. The associated paper is submitted to ApJ and we will add a link to the paper once it is live.
 
 Usage:
 
